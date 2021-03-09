@@ -1,17 +1,27 @@
 import _ from "lodash";
 import crypto from "crypto-js";
 import { Block, Blocks, Transaction, Transactions } from "./interfaces";
+import { TransactionTypes } from "./enums";
 
 export class BlockChain {
   public chain: Blocks = [];
   public transactionPool: Transactions = [];
+  public address: string = "";
 
   public addBlock(block: Block): Block {
     this.chain = _.concat(this.chain, block);
     return block;
   }
 
-  public deriveHash(block: Block): Block {
+  private deriveTxHash(tx: Transaction): Transaction {
+    const derivedTx: Transaction = {
+      ...tx,
+      hash: crypto.SHA256(JSON.stringify(tx)).toString()
+    };
+    return derivedTx;
+  }
+
+  private deriveBlockHash(block: Block): Block {
     const derivedBlock: Block = {
       ...block,
       merkleRoot: _.head(
@@ -57,5 +67,38 @@ export class BlockChain {
       );
 
     return this.deriveMerkleRoot(derivedHashes);
+  }
+
+  public addPendingTransaction(tx: Transaction): boolean {
+    const coinBaseTransaction: Transaction = {
+      sender: tx.sender,
+      recipient: this.address,
+      type: TransactionTypes.CRYPTO,
+      amount: Buffer.from(JSON.stringify(tx)).byteLength * 0.05,
+      coinbase: true,
+      hash: ""
+    };
+    const hashedCoinBaseTransaction: Transaction = this.deriveTxHash(
+      coinBaseTransaction
+    );
+    this.transactionPool = _.concat(
+      this.transactionPool,
+      hashedCoinBaseTransaction
+    );
+    this.transactionPool = _.concat(this.transactionPool, tx);
+    return true;
+  }
+
+  public prepareBlock(): Block {
+    const block: Block = {
+      nonce: 0,
+      difficulty: 1,
+      merkleRoot: "0",
+      previousHash: _.last(_.map(this.chain, (b) => b.hash)),
+      hash: "",
+      timestamp: Date.now(),
+      transactions: this.transactionPool
+    };
+    return block;
   }
 }
