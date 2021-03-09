@@ -1,7 +1,10 @@
 import _ from "lodash";
 import crypto from "crypto-js";
+import debug from "debug";
 import { Block, Blocks, Transaction, Transactions } from "./interfaces";
 import { TransactionTypes } from "./enums";
+
+const log = debug("chain");
 
 export class BlockChain {
   public chain: Blocks = [];
@@ -99,6 +102,9 @@ export class BlockChain {
       timestamp: Date.now(),
       transactions: this.transactionPool
     };
+
+    log(`Preparing block ==> ${JSON.stringify(block)}`);
+
     return block;
   }
 }
