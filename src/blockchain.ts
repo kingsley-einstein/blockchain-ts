@@ -111,8 +111,8 @@ export class BlockChain {
   }
 
   private proofOfTransaction(b: Block) {
-    return (
-      _.head(this.deriveMerkleRoot(_.map(b.transactions, (tx) => tx.hash))) ===
+    return _.isEqual(
+      _.head(this.deriveMerkleRoot(_.map(b.transactions, (tx) => tx.hash))),
       b.merkleRoot
     );
   }
@@ -122,8 +122,10 @@ export class BlockChain {
     let mineableBlock: Block = this.deriveBlockHash(b);
 
     while (
-      mineableBlock.hash.substring(0, difficulty) !==
-      Array(difficulty - 1).join("0")
+      !_.isEqual(
+        mineableBlock.hash.substring(0, difficulty),
+        Array(difficulty - 1).join("0")
+      )
     ) {
       mineableBlock.nonce = mineableBlock.nonce + 1;
       mineableBlock.timestamp = Date.now();
