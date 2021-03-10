@@ -34,18 +34,20 @@ export class BlockChain {
 
     return {
       ...derivedBlock,
-      hash: crypto
-        .SHA256(
-          JSON.stringify({
-            previousHash: derivedBlock.previousHash,
-            timestamp: derivedBlock.timestamp,
-            nonce: derivedBlock.nonce,
-            transactions: derivedBlock.transactions,
-            difficulty: derivedBlock.difficulty,
-            merkleRoot: derivedBlock.merkleRoot
-          })
-        )
-        .toString()
+      hash:
+        "0".repeat(derivedBlock.difficulty) +
+        crypto
+          .SHA256(
+            JSON.stringify({
+              previousHash: derivedBlock.previousHash,
+              timestamp: derivedBlock.timestamp,
+              nonce: derivedBlock.nonce,
+              transactions: derivedBlock.transactions,
+              difficulty: derivedBlock.difficulty,
+              merkleRoot: derivedBlock.merkleRoot
+            })
+          )
+          .toString()
     };
   }
 
@@ -92,10 +94,10 @@ export class BlockChain {
     return true;
   }
 
-  public prepareBlock(): Block {
+  private prepareBlock(difficulty: number): Block {
     const block: Block = {
       nonce: 0,
-      difficulty: 1,
+      difficulty,
       merkleRoot: "0",
       previousHash: _.last(_.map(this.chain, (b) => b.hash)),
       hash: "",
@@ -106,5 +108,45 @@ export class BlockChain {
     log(`Preparing block ==> ${JSON.stringify(block)}`);
 
     return block;
+  }
+
+  private proofOfTransaction(b: Block) {
+    return (
+      _.head(this.deriveMerkleRoot(_.map(b.transactions, (tx) => tx.hash))) ===
+      b.merkleRoot
+    );
+  }
+
+  public mineBlock(difficulty: number) {
+    const b = this.prepareBlock(difficulty);
+    let mineableBlock: Block = this.deriveBlockHash(b);
+
+    while (
+      mineableBlock.hash.substring(0, difficulty) !==
+      Array(difficulty - 1).join("0")
+    ) {
+      mineableBlock.nonce = mineableBlock.nonce + 1;
+      mineableBlock.timestamp = Date.now();
+      mineableBlock = this.deriveBlockHash(mineableBlock);
+    }
+
+    return mineableBlock;
+  }
+
+  public chainIsValid() {
+    for (let i = 1; i < this.chain.length; i++) {
+      const previousBlock = _.get(this.chain, i - 1);
+      const currentBlock = _.get(this.chain, i);
+
+      if (!_.isEqual(previousBlock.hash, currentBlock.previousHash))
+        return false;
+
+      if (!_.isEqual(currentBlock, this.deriveBlockHash(currentBlock)))
+        return false;
+
+      if (!this.proofOfTransaction(currentBlock)) return false;
+    }
+
+    return true;
   }
 }
