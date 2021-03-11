@@ -1,5 +1,4 @@
 import { TransactionTypes } from "../enums";
-
 export default interface Transaction {
   sender: string;
   recipient: string;
@@ -9,5 +8,4 @@ export default interface Transaction {
   hash: string;
   timestamp: number;
 }
-
-export type Transactions = Array<Transaction>;
+export declare type Transactions = Array<Transaction>;

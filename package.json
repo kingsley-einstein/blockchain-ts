@@ -5,7 +5,9 @@
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prettify": "prettier --write **/**/*.ts"
+    "prettify": "prettier --write **/**/*.{ts,js}",
+    "build": "tsc -p .",
+    "start": "set DEBUG=chain && node build/index"
   },
   "keywords": [],
   "author": "",

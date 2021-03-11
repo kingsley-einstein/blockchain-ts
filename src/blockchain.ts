@@ -6,20 +6,49 @@ import { TransactionTypes } from "./enums";
 
 const log = debug("chain");
 
-export class BlockChain {
+export default class BlockChain {
   public chain: Blocks = [];
   public transactionPool: Transactions = [];
   public address: string = "";
 
+  constructor() {
+    this.chain = _.concat(this.chain, this.genesis());
+  }
+
+  private genesis(): Block {
+    const b: Block = {
+      timestamp: Date.now(),
+      hash: "",
+      transactions: [],
+      nonce: 0,
+      merkleRoot: "",
+      previousHash: "0000",
+      difficulty: 1
+    };
+    return this.deriveBlockHash(b);
+  }
+
   public addBlock(block: Block): Block {
     this.chain = _.concat(this.chain, block);
+    this.transactionPool = [];
     return block;
   }
 
   private deriveTxHash(tx: Transaction): Transaction {
     const derivedTx: Transaction = {
       ...tx,
-      hash: crypto.SHA256(JSON.stringify(tx)).toString()
+      hash: crypto
+        .SHA256(
+          JSON.stringify({
+            sender: tx.sender,
+            recipient: tx.recipient,
+            coinbase: tx.coinbase,
+            amount: tx.amount,
+            type: tx.type,
+            timestamp: tx.timestamp
+          })
+        )
+        .toString()
     };
     return derivedTx;
   }
@@ -28,70 +57,81 @@ export class BlockChain {
     const derivedBlock: Block = {
       ...block,
       merkleRoot: _.head(
-        this.deriveMerkleRoot(_.map(block.transactions, (tx) => tx.hash))
+        this.deriveMerkleRoot(_.map(block.transactions, tx => tx.hash))
       )
     };
 
     return {
       ...derivedBlock,
-      hash:
-        "0".repeat(derivedBlock.difficulty) +
-        crypto
-          .SHA256(
-            JSON.stringify({
-              previousHash: derivedBlock.previousHash,
-              timestamp: derivedBlock.timestamp,
-              nonce: derivedBlock.nonce,
-              transactions: derivedBlock.transactions,
-              difficulty: derivedBlock.difficulty,
-              merkleRoot: derivedBlock.merkleRoot
-            })
-          )
-          .toString()
+      hash: crypto
+        .SHA256(
+          JSON.stringify({
+            previousHash: derivedBlock.previousHash,
+            timestamp: derivedBlock.timestamp,
+            nonce: derivedBlock.nonce,
+            transactions: derivedBlock.transactions,
+            difficulty: derivedBlock.difficulty,
+            merkleRoot: derivedBlock.merkleRoot
+          })
+        )
+        .toString()
     };
   }
 
   private deriveMerkleRoot(hashes: Array<string>): Array<string> {
-    if (hashes.length === 1) return hashes;
+    log(
+      `Running merkle root derivation for tree ==> ${JSON.stringify(hashes)}`
+    );
 
-    if (hashes.length % 2 > 0)
-      hashes = _.concat(hashes, hashes[hashes.length - 1]);
+    if (_.isNull(hashes)) return [""];
 
-    let pairedHashes: Array<Array<string>> = [];
+    if (_.isEqual(hashes.length, 0)) return [""];
 
-    for (let i = 0; i < hashes.length; i++)
-      if (i % 2 === 0)
-        pairedHashes = _.concat(pairedHashes, [hashes[i - 1], hashes[i]]);
+    if (_.isEqual(hashes.length, 1)) return hashes;
 
-    let derivedHashes: Array<string> = [];
+    const root = [hashes];
 
-    for (let i = 0; i < pairedHashes.length; i++)
-      derivedHashes = _.concat(
-        derivedHashes,
-        crypto.SHA256(`${pairedHashes[i][0]}:${pairedHashes[i][1]}`).toString()
-      );
+    while (_.gt(_.head(root).length, 1)) {
+      let temp: Array<string> = [];
 
-    return this.deriveMerkleRoot(derivedHashes);
+      for (let i = 0; i < _.head(root).length; i += 2) {
+        if (i < _.subtract(_.head(root).length, 1) && i % 2 === 0)
+          temp = _.concat(
+            temp,
+            crypto.SHA256(_.head(root)[i] + _.head(root)[i + 1]).toString()
+          );
+        else temp = _.concat(temp, _.head(root)[i]);
+      }
+      root.unshift(temp);
+    }
+    return _.head(root);
   }
 
-  public addPendingTransaction(tx: Transaction): boolean {
+  public addPendingTransaction(tx: Transaction): Transactions {
     const coinBaseTransaction: Transaction = {
       sender: tx.sender,
       recipient: this.address,
       type: TransactionTypes.CRYPTO,
       amount: Buffer.from(JSON.stringify(tx)).byteLength * 0.05,
       coinbase: true,
-      hash: ""
+      hash: "",
+      timestamp: Date.now()
     };
     const hashedCoinBaseTransaction: Transaction = this.deriveTxHash(
       coinBaseTransaction
     );
+    const hashedTx: Transaction = this.deriveTxHash(tx);
     this.transactionPool = _.concat(
       this.transactionPool,
-      hashedCoinBaseTransaction
+      hashedCoinBaseTransaction,
+      hashedTx
     );
-    this.transactionPool = _.concat(this.transactionPool, tx);
-    return true;
+    return _.filter(
+      this.transactionPool,
+      tx =>
+        _.isEqual(tx.hash, hashedCoinBaseTransaction.hash) ||
+        _.isEqual(tx.hash, hashedTx.hash)
+    );
   }
 
   private prepareBlock(difficulty: number): Block {
@@ -99,20 +139,22 @@ export class BlockChain {
       nonce: 0,
       difficulty,
       merkleRoot: "0",
-      previousHash: _.last(_.map(this.chain, (b) => b.hash)),
+      previousHash: _.last(_.map(this.chain, b => b.hash)),
       hash: "",
       timestamp: Date.now(),
       transactions: this.transactionPool
     };
 
-    log(`Preparing block ==> ${JSON.stringify(block)}`);
+    log(`Preparing block ==> ${JSON.stringify(block, null, 2)}`);
 
     return block;
   }
 
   private proofOfTransaction(b: Block) {
+    log(`Checking transaction integrity for block ==> ${_.get(b, "hash")}`);
+
     return _.isEqual(
-      _.head(this.deriveMerkleRoot(_.map(b.transactions, (tx) => tx.hash))),
+      _.head(this.deriveMerkleRoot(_.map(b.transactions, tx => tx.hash))),
       b.merkleRoot
     );
   }
@@ -121,15 +163,21 @@ export class BlockChain {
     const b = this.prepareBlock(difficulty);
     let mineableBlock: Block = this.deriveBlockHash(b);
 
+    let iteration = 0;
+
     while (
       !_.isEqual(
         mineableBlock.hash.substring(0, difficulty),
-        Array(difficulty - 1).join("0")
+        Array(difficulty + 1).join("0")
       )
     ) {
+      iteration = iteration + 1;
+
       mineableBlock.nonce = mineableBlock.nonce + 1;
       mineableBlock.timestamp = Date.now();
       mineableBlock = this.deriveBlockHash(mineableBlock);
+
+      log(`Iteration ==> ${iteration} Derived hash ==> ${mineableBlock.hash}`);
     }
 
     return mineableBlock;
@@ -139,6 +187,10 @@ export class BlockChain {
     for (let i = 1; i < this.chain.length; i++) {
       const previousBlock = _.get(this.chain, i - 1);
       const currentBlock = _.get(this.chain, i);
+
+      log(`Checking validity for block ==> ${_.get(currentBlock, "hash")}`);
+      log(`Current block ==> ${JSON.stringify(currentBlock)}`);
+      log(`Previous block ==> ${JSON.stringify(previousBlock)}`);
 
       if (!_.isEqual(previousBlock.hash, currentBlock.previousHash))
         return false;
@@ -150,5 +202,9 @@ export class BlockChain {
     }
 
     return true;
+  }
+
+  public getChain(): Blocks {
+    return this.chain;
   }
 }
