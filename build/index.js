@@ -13,3 +13,4 @@ app.use("/api/v1", router_1["default"]);
 app.listen(7000, function () {
   return console.log("App is running on port 7000");
 });
+// export default app;

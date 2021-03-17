@@ -7,3 +7,5 @@ app.use(express.json());
 app.use("/api/v1", router);
 
 app.listen(7000, () => console.log("App is running on port 7000"));
+
+// export default app;
