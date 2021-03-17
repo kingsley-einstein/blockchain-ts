@@ -21,6 +21,7 @@ var __importDefault =
   };
 exports.__esModule = true;
 var lodash_1 = __importDefault(require("lodash"));
+var elliptic_1 = __importDefault(require("elliptic"));
 var crypto_js_1 = __importDefault(require("crypto-js"));
 var debug_1 = __importDefault(require("debug"));
 var enums_1 = require("./enums");
@@ -43,6 +44,15 @@ var BlockChain = /** @class */ (function () {
       difficulty: 1
     };
     return this.deriveBlockHash(b);
+  };
+  BlockChain.prototype.generateKeys = function () {
+    var EC = new elliptic_1["default"].ec("secp256k1");
+    var keypair = EC.genKeyPair();
+    var privateKey = keypair.getPrivate().toString("hex");
+    var address = crypto_js_1["default"]
+      .MD5(privateKey)
+      .toString(crypto_js_1["default"].enc.Hex);
+    return { address: address, privateKey: privateKey };
   };
   BlockChain.prototype.addBlock = function (block) {
     this.chain = lodash_1["default"].concat(this.chain, block);
@@ -108,7 +118,7 @@ var BlockChain = /** @class */ (function () {
               lodash_1["default"].head(root).length,
               1
             ) &&
-          i % 2 === 0
+          lodash_1["default"].isEqual(i % 2, 0)
         )
           temp = lodash_1["default"].concat(
             temp,

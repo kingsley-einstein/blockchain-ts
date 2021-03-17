@@ -5,6 +5,10 @@ export default class BlockChain {
   address: string;
   constructor();
   private genesis;
+  generateKeys(): {
+    address: string;
+    privateKey: string;
+  };
   addBlock(block: Block): Block;
   private deriveTxHash;
   private deriveBlockHash;

@@ -1,5 +1,9 @@
 import express from "express";
 export default class Controller {
+  static createKeys(
+    req: express.Request,
+    res: express.Response
+  ): Promise<express.Response<any, Record<string, any>>>;
   static addNewTx(
     req: express.Request,
     res: express.Response

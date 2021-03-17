@@ -1,4 +1,19 @@
 "use strict";
+var __assign =
+  (this && this.__assign) ||
+  function () {
+    __assign =
+      Object.assign ||
+      function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+          s = arguments[i];
+          for (var p in s)
+            if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+        }
+        return t;
+      };
+    return __assign.apply(this, arguments);
+  };
 var __awaiter =
   (this && this.__awaiter) ||
   function (thisArg, _arguments, P, generator) {
@@ -143,6 +158,25 @@ var enums_1 = require("../enums");
 var chain = new blockchain_1["default"]();
 var Controller = /** @class */ (function () {
   function Controller() {}
+  Controller.createKeys = function (req, res) {
+    return __awaiter(this, void 0, void 0, function () {
+      var keys;
+      return __generator(this, function (_a) {
+        try {
+          keys = chain.generateKeys();
+          return [2 /*return*/, res.status(201).json(__assign({}, keys))];
+        } catch (error) {
+          return [
+            2 /*return*/,
+            res.status(500).json({
+              error: error.message
+            })
+          ];
+        }
+        return [2 /*return*/];
+      });
+    });
+  };
   Controller.addNewTx = function (req, res) {
     return __awaiter(this, void 0, void 0, function () {
       var body, newTx;

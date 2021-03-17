@@ -6,6 +6,17 @@ import { Block, Transaction } from "../interfaces";
 const chain = new BlockChain();
 
 export default class Controller {
+  static async createKeys(req: express.Request, res: express.Response) {
+    try {
+      const keys = chain.generateKeys();
+      return res.status(201).json({ ...keys });
+    } catch (error) {
+      return res.status(500).json({
+        error: error.message
+      });
+    }
+  }
+
   static async addNewTx(req: express.Request, res: express.Response) {
     try {
       const body = req.body;

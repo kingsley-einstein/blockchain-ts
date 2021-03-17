@@ -1,4 +1,5 @@
 import _ from "lodash";
+import elliptic from "elliptic";
 import crypto from "crypto-js";
 import debug from "debug";
 import { Block, Blocks, Transaction, Transactions } from "./interfaces";
@@ -26,6 +27,14 @@ export default class BlockChain {
       difficulty: 1
     };
     return this.deriveBlockHash(b);
+  }
+
+  public generateKeys(): { address: string; privateKey: string } {
+    const EC = new elliptic.ec("secp256k1");
+    const keypair = EC.genKeyPair();
+    const privateKey = keypair.getPrivate().toString("hex");
+    const address = crypto.MD5(privateKey).toString(crypto.enc.Hex);
+    return { address, privateKey };
   }
 
   public addBlock(block: Block): Block {
@@ -95,7 +104,7 @@ export default class BlockChain {
       let temp: Array<string> = [];
 
       for (let i = 0; i < _.head(root).length; i += 2) {
-        if (i < _.subtract(_.head(root).length, 1) && i % 2 === 0)
+        if (i < _.subtract(_.head(root).length, 1) && _.isEqual(i % 2, 0))
           temp = _.concat(
             temp,
             crypto.SHA256(_.head(root)[i] + _.head(root)[i + 1]).toString()
