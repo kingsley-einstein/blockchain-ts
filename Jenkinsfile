@@ -19,8 +19,8 @@ pipeline {
 
   stage("Configure VC") {
    steps {
-    bat 'git config --global user.name="Kingsley Victor"'
-    bat 'git config --global user.email="javaprodigy56@gmail.com"'
+    bat 'git config --global user.name "Kingsley Victor"'
+    bat 'git config --global user.email "javaprodigy56@gmail.com"'
    }
   }
 
