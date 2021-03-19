@@ -30,7 +30,7 @@ pipeline {
     bat('echo Job Name: ${JOB_NAME} >> build-${JOB_NAME}-${BUILD_NUMBER}-${BUILD_ID}')
     bat('echo Build ID: ${BUILD_ID} >> build-${JOB_NAME}-${BUILD_NUMBER}-${BUILD_ID}')
     bat("if not exist jenkins (mkdir jenkins) && move build-${JOB_NAME}-${BUILD_NUMBER}-${BUILD_ID} ./jenkins/build-${JOB_NAME}-${BUILD_NUMBER}-${BUILD_ID}")
-    bat('git tag -a blockchain-ts-$BUILD_ID -m "Jenkins pipeline build"')
+    bat('git tag -a blockchain-ts-${BUILD_ID} -m "Jenkins pipeline build"')
     bat('git add . && git commit -m "Successfully completed build number ${BUILD_NUMBER}"')
    }
   }
@@ -44,7 +44,7 @@ pipeline {
 
   stage("Push tags") {
    steps {
-    bat("git push https://$GIT_USERNAME:$GIT_PASSWORD@github.com/kingsley-einstein/blockchain-ts")
+    bat("git push https://$GIT_USERNAME:$GIT_PASSWORD@github.com/kingsley-einstein/blockchain-ts blockchain-ts-${BUILD_ID}")
     echo "Pushed tag"
    }
   }
