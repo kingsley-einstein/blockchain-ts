@@ -1,4 +1,4 @@
 export declare enum TransactionTypes {
-  CRYPTO = "CRYPTO",
-  MISC = "MISC"
+    CRYPTO = "CRYPTO",
+    MISC = "MISC"
 }

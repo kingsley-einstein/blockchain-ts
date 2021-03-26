@@ -29,11 +29,11 @@
   },
   "dependencies": {},
   "ava": {
-   "typescript": {
-    "rewritePaths": {
-     "src/": "build/"
-    }
-   },
+    "typescript": {
+      "rewritePaths": {
+        "src/": "build/"
+      }
+    },
     "files": [
       "./src/test/*.test.ts"
     ]
